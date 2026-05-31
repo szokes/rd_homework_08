@@ -1,6 +1,5 @@
 """
 Adott város időjárás adatainak megjelenítése Streamlit applikációban
-
 """
 
 import requests
@@ -36,18 +35,14 @@ def fetch_data(url: str, params: dict, result_field_name: str = None) -> dict | 
 
 # --------------------------------------------------------------------------------
 
+@st.cache_data(ttl=86400)
 def fetch_geo_data(city_name: str) -> list[dict]:
     """
     Keresés településnév alapján a Geocoding adatbázisban.
-    A keresés eredményeit a st.session_state -ben eltároljuk, így ha ugyanazon településnévvel a függvény újra lefut, akkor
-    a tárolt értéket adja vissza. Tényleges API hívás csak akkor történik, ha változott a keresési név az előzőhöz képest.
+    Az API hívás és az eredmények kiszolgálása cache használatával történik.
     """
     if city_name:
-        if not ("city_name" in st.session_state and city_name == st.session_state.city_name and "geo_data" in st.session_state):
-            # Geocoding API hívásra csak akkor kerül sor, ha a city_name eltér a session_state-ben lévő értéktől vagy a session_state még nem tartalmaz geocoding eredményeket
-            st.session_state.city_name = city_name # A session_state-be elmentjük, hogy mire kerestünk 
-            st.session_state.geo_data = fetch_data(url=GEOCODING_URL, params={"name": city_name, "count": 100}, result_field_name="results") # A session_state-be elmentjük a keresés eredményeit
-        return st.session_state.geo_data # Az eredményt a session_state-ből szolgáltatjuk, akár volt API fetch, akár nem
+        return fetch_data(url=GEOCODING_URL, params={"name": city_name, "count": 100}, result_field_name="results")
 
 # --------------------------------------------------------------------------------
 
@@ -59,10 +54,12 @@ def concat_weather_param(api_res: dict, name: str) -> str:
 
 # --------------------------------------------------------------------------------
 
+@st.cache_data(ttl=86400)
 def fetch_current_weather(latitude: float, longitude: float) -> dict:
     """
-    Latitude és longitude alapján az aktuális hőmrséklet, páratartalom és szélesbesség letöltése az Open Meteo végpontról, és az eredmények visszaadása egy három mezőt tartalmazó dictionary-ben
-
+    Latitude és longitude alapján az aktuális hőmrséklet, páratartalom és szélesbesség letöltése az Open Meteo végpontról, és az eredmények visszaadása egy 
+    három mezőt tartalmazó dictionary-ben.
+    Az API hívás és az eredmények kiszolgálása cache használatával történik.
     """
     weather_params = {"latitude": latitude,
                       "longitude": longitude,
@@ -77,10 +74,11 @@ def fetch_current_weather(latitude: float, longitude: float) -> dict:
 
 # --------------------------------------------------------------------------------
 
+@st.cache_data(ttl=86400)
 def fetch_weather_forecast(latitude: float, longitude: float, forecast_days) -> pd.DataFrame:
     """
     Latitude és longitude alapján órás gyakoriságú hőmérséklet előrejelzési adatok letöltése az Open Meteo végpontról, és az eredmények betöltése egy pandas dataframe-be
-
+    Az API hívás és az eredmények kiszolgálása cache használatával történik.
     """
     forecast_params = {"latitude": latitude,
                        "longitude": longitude,
